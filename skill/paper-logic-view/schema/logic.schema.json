@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "paper-logic-view/1",
+  "title": "paper-logic-view 标注数据",
+  "description": "模型只填这份数据；定位、高亮、箭头、检查规则都由模板完成。字段含义见 reference/tags.md 和 reference/fill-guide.md。",
+  "type": "object",
+  "required": ["schema", "annotations", "links"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "paper-logic-view/1" },
+    "mode": {
+      "enum": ["read", "write"],
+      "default": "read",
+      "description": "read：读别人的论文；write：查自己的草稿"
+    },
+    "paper": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "source": { "type": "string", "description": "论文出处，如 arXiv 链接；自己的草稿可以不填" },
+        "license": { "type": "string", "description": "论文的许可证，如 CC BY 4.0" }
+      }
+    },
+    "summary": { "type": "string", "description": "一句话：这篇论文的主线" },
+    "annotations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "importance"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+          "page": { "type": "integer", "minimum": 1, "description": "PDF 物理页码，从 1 开始；implicit 标注可不填" },
+          "quote": { "type": "string", "minLength": 8, "description": "原文逐字引用，一句或半句，不含公式；implicit 标注不填" },
+          "type": {
+            "enum": ["claim", "evidence", "method", "definition", "assumption", "problem", "background", "limitation"]
+          },
+          "importance": { "enum": [1, 2, 3], "description": "3 主线，2 支撑，1 次要" },
+          "note": { "type": "string", "description": "一句话：它在论证里起什么作用" },
+          "external": {
+            "type": ["string", "null"],
+            "description": "靠论文外部撑的，写出处，如 \"引用 [12]\"；算有支撑，但在问题清单里单列"
+          },
+          "implicit": {
+            "type": "boolean",
+            "description": "true = 论文没写出来、推理却要用到的隐含前提。只能配 type=assumption，此时不填 quote，改填 text 和 anchor"
+          },
+          "text": { "type": "string", "description": "implicit 标注的内容：论文默认了什么" },
+          "anchor": { "type": "string", "description": "implicit 标注挂在哪个标注旁边（填那个标注的 id）" },
+          "first_used_page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "只给 definition：这个术语第一次被使用的页码。比定义所在页早，就报'先用后定义'"
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string", "description": "理由那一端的标注 id" },
+          "to": { "type": "string", "description": "被撑的那一端的标注 id" },
+          "type": { "enum": ["supports", "indirect", "answers", "qualifies", "conflicts"] },
+          "missing_step": { "type": "string", "description": "indirect 必填：中间缺的那一步" },
+          "overreach": { "type": "string", "description": "说过头：证据覆盖了什么、结论说了什么" },
+          "alternative": { "type": "string", "description": "替代解释：这个结果还可能是什么原因" },
+          "note": { "type": "string", "description": "conflicts 建议填：哪里打架" }
+        }
+      }
+    }
+  }
+}

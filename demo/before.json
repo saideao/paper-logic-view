@@ -1,0 +1,238 @@
+{
+  "schema": "paper-logic-view/1",
+  "mode": "write",
+  "paper": {
+    "title": "面向新站点的共享单车需求预测（改前）",
+    "source": "虚构示例，演示用",
+    "license": "CC0"
+  },
+  "summary": "想说明：新站点可以借相似老站点的需求来预测，而且比现有方法好、能直接上线。但几条关键结论没有撑住。",
+  "annotations": [
+    {
+      "id": "bg1",
+      "page": 1,
+      "type": "background",
+      "importance": 1,
+      "quote": "共享单车已经成为城市短途出行的主要方式之一",
+      "note": "交代场景。"
+    },
+    {
+      "id": "bg2",
+      "page": 1,
+      "type": "background",
+      "importance": 2,
+      "quote": "调度得好不好，取决于对每个站点未来需求的预测",
+      "note": "为什么要做需求预测。"
+    },
+    {
+      "id": "hist",
+      "page": 1,
+      "type": "background",
+      "importance": 2,
+      "quote": "现有的预测方法大多基于历史订单训练",
+      "note": "现有方法的做法。"
+    },
+    {
+      "id": "p_new",
+      "page": 1,
+      "type": "problem",
+      "importance": 3,
+      "quote": "因此，它们在新站点上无法使用",
+      "note": "全文要解决的问题。读者会问：为什么'基于历史订单'就'在新站点上无法使用'？"
+    },
+    {
+      "id": "grow",
+      "page": 1,
+      "type": "claim",
+      "importance": 2,
+      "quote": "新站点的数量正在快速增长",
+      "note": "读者会问：快到什么程度？有数据吗？"
+    },
+    {
+      "id": "core",
+      "page": 1,
+      "type": "method",
+      "importance": 3,
+      "quote": "新站点的需求，可以从周边环境相似的老站点那里借过来",
+      "note": "核心想法。"
+    },
+    {
+      "id": "con2",
+      "page": 1,
+      "type": "claim",
+      "importance": 3,
+      "quote": "第二，在两个城市的数据上验证了它的效果",
+      "note": "贡献：实验验证。"
+    },
+    {
+      "id": "con3",
+      "page": 1,
+      "type": "claim",
+      "importance": 3,
+      "quote": "第三，证明了它可以直接用于调度系统",
+      "note": "贡献：可以上线。读者会问：在哪里证明的？"
+    },
+    {
+      "id": "sim",
+      "page": 1,
+      "type": "definition",
+      "importance": 2,
+      "quote": "两个站点的相似度，定义为它们兴趣点分布的余弦相似度",
+      "note": "相似度怎么算。"
+    },
+    {
+      "id": "transfer",
+      "page": 1,
+      "type": "method",
+      "importance": 2,
+      "quote": "用这些老站点历史需求的加权平均作为新站点的预测",
+      "note": "怎么借。"
+    },
+    {
+      "id": "k5",
+      "page": 1,
+      "type": "claim",
+      "importance": 2,
+      "quote": "我们发现 k 取 5 时效果最好",
+      "note": "读者会问：和别的 k 比过吗？数据在哪？"
+    },
+    {
+      "id": "newdef",
+      "page": 1,
+      "type": "definition",
+      "importance": 2,
+      "quote": "我们把 2024 年以后投放的站点当作新站点",
+      "note": "实验里的'新站点'。"
+    },
+    {
+      "id": "e18",
+      "page": 1,
+      "type": "evidence",
+      "importance": 3,
+      "quote": "SiteTransfer 的平均绝对误差比历史均值法低 18%",
+      "note": "唯一的具体数字。"
+    },
+    {
+      "id": "rule",
+      "page": 1,
+      "type": "claim",
+      "importance": 2,
+      "quote": "这说明我们的方法学到了站点需求的规律",
+      "note": "从数字推到'学到了规律'。"
+    },
+    {
+      "id": "eb",
+      "page": 2,
+      "type": "evidence",
+      "importance": 1,
+      "quote": "在 B 城上也有类似的结果",
+      "note": "没有数字。"
+    },
+    {
+      "id": "sig",
+      "page": 2,
+      "type": "claim",
+      "importance": 3,
+      "quote": "总之，SiteTransfer 显著优于现有方法",
+      "note": "实验部分的总结论。"
+    },
+    {
+      "id": "abs",
+      "page": 1,
+      "type": "claim",
+      "importance": 3,
+      "quote": "实验表明，SiteTransfer 显著优于现有方法，可以直接用于城市的调度系统",
+      "note": "摘要的结论。"
+    },
+    {
+      "id": "concl",
+      "page": 2,
+      "type": "claim",
+      "importance": 3,
+      "quote": "本文提出 SiteTransfer，解决了新站点的需求预测问题",
+      "note": "结论。"
+    },
+    {
+      "id": "deploy",
+      "page": 2,
+      "type": "claim",
+      "importance": 3,
+      "quote": "SiteTransfer 可以直接用于城市的调度系统",
+      "note": "结论里再说一遍能上线。"
+    },
+    {
+      "id": "h_sim",
+      "type": "assumption",
+      "implicit": true,
+      "importance": 3,
+      "anchor": "core",
+      "text": "周边兴趣点相似的站点，需求模式也相似——整个方法都建立在这一点上，文中没写，也没验证"
+    }
+  ],
+  "links": [
+    {
+      "from": "bg1",
+      "to": "bg2",
+      "type": "supports"
+    },
+    {
+      "from": "hist",
+      "to": "p_new",
+      "type": "indirect",
+      "missing_step": "缺：新站点刚投放，还没有历史订单。"
+    },
+    {
+      "from": "core",
+      "to": "p_new",
+      "type": "answers"
+    },
+    {
+      "from": "h_sim",
+      "to": "core",
+      "type": "supports"
+    },
+    {
+      "from": "sim",
+      "to": "transfer",
+      "type": "supports"
+    },
+    {
+      "from": "e18",
+      "to": "con2",
+      "type": "supports"
+    },
+    {
+      "from": "eb",
+      "to": "con2",
+      "type": "supports"
+    },
+    {
+      "from": "e18",
+      "to": "rule",
+      "type": "indirect",
+      "missing_step": "缺：误差降在哪里？只说'低 18%'，推不出'学到了规律'。"
+    },
+    {
+      "from": "e18",
+      "to": "sig",
+      "type": "supports",
+      "overreach": "只和历史均值一种方法比了，'现有方法'说的却是一类；也没有显著性检验，'显著'没有依据。"
+    },
+    {
+      "from": "eb",
+      "to": "sig",
+      "type": "supports"
+    },
+    {
+      "from": "sig",
+      "to": "abs",
+      "type": "supports"
+    },
+    {
+      "from": "sig",
+      "to": "concl",
+      "type": "supports",
+      "overreach": "两个城市、一个基线，说'解决了'问题口气太满。"
+    }
+  ]
+}

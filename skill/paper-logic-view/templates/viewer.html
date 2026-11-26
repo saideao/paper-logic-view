@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>论文逻辑图</title>
+<!-- paper-logic-view 查看器模板：固定不改。数据由 pack_logic.py 装进页尾的两个 script 块。 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#f4f3ef;--panel:#ffffff;--ink:#1d1f23;--muted:#6b7280;--line:#e2e0da;--soft:#efede8;
+  --accent:#2f6fdd;--warnA:#d6453d;--warnB:#c27c0e;--warnL:#6b7280;--shadow:0 1px 3px rgba(0,0,0,.12),0 4px 16px rgba(0,0,0,.05);
+  color-scheme:light;
+}
+[data-theme=dark]{
+  --bg:#0e1014;--panel:#161920;--ink:#e4e6ea;--muted:#9aa3ad;--line:#2a2f38;--soft:#1d2129;
+  --accent:#79a8ff;--warnA:#ff7b72;--warnB:#f0b44c;--warnL:#9aa3ad;--shadow:0 1px 3px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,select,input{font:inherit;color:inherit}
+header#top{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px 8px;flex:none}
+.titlerow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.titlerow h1{font-size:16px;margin:0;font-weight:650;line-height:1.3}
+.badge{font-size:12px;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.summary{color:var(--muted);font-size:13px;margin:3px 0 6px;max-width:1100px}
+.src{font-size:12px;color:var(--muted)}
+.src a{color:var(--accent)}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:4px}
+.grp{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:3px 10px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--ink);color:var(--panel)}
+.tg{border:1px solid var(--line);background:transparent;border-radius:8px;padding:3px 10px;cursor:pointer;color:var(--muted)}
+.tg.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+input[type=range]{width:110px;accent-color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:1px 8px 1px 6px;border-radius:999px;border:1px solid var(--line);cursor:pointer;user-select:none;background:transparent;color:var(--ink)}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chip.off{opacity:.35;text-decoration:line-through}
+.chip.ln{cursor:default}
+.chip.ln svg{width:22px;height:8px}
+#main{flex:1;display:grid;grid-template-columns:300px 1fr 320px;min-height:0}
+#main.noissues{grid-template-columns:0 1fr 320px}
+aside{background:var(--panel);overflow:auto;min-height:0}
+#issues{border-right:1px solid var(--line);grid-column:1;grid-row:1}
+#stage{grid-column:2;grid-row:1}
+#detail{grid-column:3;grid-row:1}
+#detail{border-left:1px solid var(--line)}
+#main.noissues #issues{display:none}
+.panelhead{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 6px;font-weight:650;position:sticky;top:0;background:var(--panel);z-index:2}
+.panelhead button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;display:none}
+.tier{font-size:11px;color:var(--muted);padding:8px 14px 2px;letter-spacing:.04em}
+.rule{border-top:1px solid var(--line)}
+.rule>summary{list-style:none;cursor:pointer;padding:7px 14px;display:flex;align-items:center;gap:8px}
+.rule>summary::-webkit-details-marker{display:none}
+.rule>summary .n{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px;min-width:22px;text-align:center;border-radius:999px;padding:0 6px;background:var(--soft);color:var(--muted)}
+.rule.hot>summary .n{background:var(--rc);color:#fff}
+[data-theme=dark] .rule.hot>summary .n{color:#111}
+.rule .dot{width:8px;height:8px;border-radius:50%;background:var(--rc)}
+.rule .rd{font-size:12px;color:var(--muted);padding:0 14px 6px}
+.iss{padding:6px 14px 7px 30px;cursor:pointer;font-size:13px;border-top:1px dashed var(--line)}
+.iss:hover,.iss.on{background:var(--soft)}
+.iss .w{color:var(--muted);font-size:12px;margin-top:2px}
+.iss b{font-weight:600}
+.empty{padding:6px 14px 10px 30px;color:var(--muted);font-size:12px}
+#stage{overflow:auto;position:relative;min-height:0;-webkit-overflow-scrolling:touch}
+#pages{padding:22px 20px 60px;position:relative}
+.page{position:relative;margin:0 auto 18px;background:#fff;box-shadow:var(--shadow)}
+.page canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+[data-theme=dark] .page.inv{background:#141414}
+[data-theme=dark] .page.inv canvas{filter:invert(.92) hue-rotate(180deg)}
+[data-theme=dark] .page:not(.inv){background:#fff}
+.page svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.page svg .h,.page svg .imp,.page svg [data-goto]{pointer-events:all;cursor:pointer}
+.page svg .lk{transition:opacity .25s}
+.page svg .flow{stroke-dasharray:.1 7;stroke-linecap:round;animation:plvflow 1.1s linear infinite;opacity:.95;pointer-events:none}
+@keyframes plvflow{to{stroke-dashoffset:-7.1}}
+@media (prefers-reduced-motion:reduce){.page svg .flow{animation:none}}
+.page .pno{position:absolute;right:0;top:-17px;font-size:11px;color:var(--muted)}
+.flash{position:absolute;border-radius:3px;pointer-events:none;box-shadow:0 0 0 3px var(--accent);animation:fl 1.6s ease-out forwards}
+@keyframes fl{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
+#reflow{display:none;position:relative;padding:18px 16px 60px}
+.rf-wrap{position:relative;max-width:820px;margin:0 auto;padding-left:var(--gut,84px)}
+.rf-gutter{position:absolute;left:0;top:0;width:var(--gut,84px);overflow:visible;pointer-events:none}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:8px 12px;margin:6px 0;cursor:pointer;position:relative}
+.card.imp1{opacity:.72}
+.card.on{box-shadow:0 0 0 2px var(--c)}
+.card.implicit{border-style:dashed;border-left-style:solid}
+.card .meta{font-size:12px;color:var(--c);font-weight:600;display:flex;gap:8px;flex-wrap:wrap}
+.card .meta span{color:var(--muted);font-weight:400}
+.card .q{margin-top:2px}
+.card .nt{font-size:12px;color:var(--muted);margin-top:3px}
+.card.fl{animation:cf 1.6s}
+@keyframes cf{0%,60%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:none}}
+.gap{color:var(--ink);font-size:13px;padding:4px 12px;white-space:pre-wrap;word-break:break-word;cursor:pointer;border-radius:6px}
+.gap.clip{max-height:3.2em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 40%,transparent)}
+.gap .more{color:var(--accent);font-size:12px}
+.rf-h{font-weight:650;margin:22px 0 6px}
+.dpad{padding:4px 16px 20px}
+.dq{border-left:3px solid var(--c);padding:4px 10px;margin:6px 0 8px;background:var(--soft);border-radius:0 6px 6px 0}
+.dmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.tchip{color:#fff;background:var(--c);border-radius:4px;padding:0 6px;font-weight:600}
+[data-theme=dark] .tchip{color:#111}
+.dsec{font-size:12px;color:var(--muted);margin:12px 0 4px;font-weight:600}
+.lk{padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin:4px 0;cursor:pointer;font-size:13px}
+.lk:hover{background:var(--soft)}
+.lk .lt{font-size:11px;font-weight:600;color:var(--muted)}
+.lk .ex{font-size:12px;margin-top:3px;padding:3px 6px;border-radius:4px;background:var(--soft)}
+.ex.warn{color:var(--warnB)}
+.hint{color:var(--muted);font-size:13px;padding:6px 16px}
+#loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;flex-direction:column;gap:12px;padding:20px;text-align:center}
+#loader.hide{display:none}
+#loader .err{color:var(--warnA);max-width:560px}
+.picker{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 24px;max-width:460px;text-align:left}
+.picker label{display:block;margin:10px 0 4px;font-size:13px;color:var(--muted)}
+.picker button{margin-top:14px;padding:6px 16px;border-radius:8px;border:0;background:var(--ink);color:var(--panel);cursor:pointer}
+#settings{position:absolute;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);font-size:13px;display:none;width:260px}
+#settings.show{display:block}
+#settings label{display:flex;justify-content:space-between;align-items:center;margin:6px 0;gap:10px}
+#settings input{width:60px;padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.mobbar{display:none}
+@media (max-width:1100px){
+  #main,#main.noissues{grid-template-columns:260px 1fr}
+  #main.noissues{grid-template-columns:0 1fr}
+  #detail{position:fixed;right:0;left:auto;top:auto;bottom:0;width:min(420px,100%);max-height:60vh;border:1px solid var(--line);border-radius:12px 12px 0 0;box-shadow:var(--shadow);z-index:30;display:none}
+  #detail.open{display:block}
+  #detail .panelhead button{display:block}
+}
+@media (max-width:760px){
+  header#top{padding:8px 10px 6px}
+  .summary{display:none}
+  .titlerow h1{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .toolbar,.legend{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .toolbar>*,.legend>*{flex:none}
+  #tgIssues,#tgSet{display:none}
+  #main,#main.noissues{grid-template-columns:1fr}
+  #stage{grid-column:1}
+  #issues{position:fixed;left:0;right:0;bottom:0;max-height:70vh;border:1px solid var(--line);border-radius:12px 12px 0 0;box-shadow:var(--shadow);z-index:31;display:none}
+  #issues.open{display:block}
+  #main.noissues #issues{display:none}
+  #issues .panelhead button{display:block}
+  #detail{width:100%;max-height:65vh}
+  #pages{padding:18px 8px 70px}
+  .page .pno{display:none}
+  .rf-wrap{--gut:46px}
+  #reflow{padding:10px 8px 70px}
+  .mobbar{display:flex;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);gap:8px;z-index:25}
+  .mobbar button{border:0;border-radius:999px;padding:8px 16px;background:var(--ink);color:var(--panel);box-shadow:var(--shadow)}
+  .hide-m{display:none!important}
+  input[type=range]{width:80px}
+}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="titlerow"><h1 id="ttl">论文逻辑图</h1><span class="badge" id="modeBadge"></span><span class="src" id="src"></span></div>
+  <div class="summary" id="sum"></div>
+  <div class="toolbar" id="toolbar">
+    <div class="grp"><span class="hide-m">视图</span><div class="seg" id="segView"><button data-v="page">原页</button><button data-v="reflow">重排</button></div></div>
+    <div class="grp" title="把没标注的内容调暗多少"><span>调暗</span><input type="range" id="dim" min="0" max="0.9" step="0.05"></div>
+    <button class="tg" id="tgMain" title="只看重要度 3 的主线">只看主线</button>
+    <div class="grp"><span class="hide-m">连线</span><div class="seg" id="segLinks"><button data-v="hover">悬停</button><button data-v="all">全部</button><button data-v="off">关</button></div></div>
+    <button class="tg" id="tgDetail" title="在高亮旁显示类型标签">详情</button>
+    <div class="grp hide-m" id="zoomGrp"><button class="tg" id="zOut">−</button><button class="tg" id="zIn">＋</button></div>
+    <button class="tg" id="tgIssues">问题清单</button>
+    <button class="tg" id="tgTheme" title="浅色 / 深色">☾</button>
+    <button class="tg" id="tgInv" title="深色模式下把 PDF 页面反色">反色</button>
+    <button class="tg" id="tgSet" title="跳帧阈值">⚙</button>
+  </div>
+  <div class="legend" id="legend"></div>
+</header>
+<div id="settings">
+  <div style="font-weight:650;margin-bottom:4px">跳帧阈值</div>
+  <label>支撑两端跨了几页以上 <input type="number" id="jp" min="1" max="50"></label>
+  <label>中间夹了几条标注以上 <input type="number" id="jg" min="0" max="500"></label>
+  <div style="color:var(--muted);font-size:12px;margin-top:6px">满足任一条，就算"隔太远"。只查理由在前、结论在后的连线。条数填 0 表示不看这一条（标注密的时候容易误报）。</div>
+</div>
+<div id="main">
+  <aside id="issues"><div class="panelhead"><span>问题清单</span><button data-close="issues">×</button></div><div id="issList"></div></aside>
+  <section id="stage"><div id="pages"></div><div id="reflow"><div class="rf-wrap"><svg class="rf-gutter" id="rfG"></svg><div id="rfList"></div></div></div></section>
+  <aside id="detail"><div class="panelhead"><span>标注详情</span><button data-close="detail">×</button></div><div id="detBody"><div class="hint">点原文上的高亮，看它在论证里的位置：谁撑它，它撑谁。</div></div></aside>
+</div>
+<div class="mobbar"><button id="mIss">问题</button><button id="mView">重排</button></div>
+<div id="loader"><div id="ldMsg">正在打开……</div></div>
+
+<script>
+'use strict';
+const PDFJS_VER='3.11.174';
+const WORKER_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/'+PDFJS_VER+'/pdf.worker.min.js';
+const TYPES={
+  claim:{zh:'主张',en:'CLAIM',c:['#d6453d','#ff7b72']},
+  evidence:{zh:'证据',en:'EVIDENCE',c:['#1f8a4c','#56d364']},
+  method:{zh:'方法',en:'METHOD',c:['#2f6fdd','#79a8ff']},
+  definition:{zh:'定义',en:'DEFINITION',c:['#8a5cd1','#c2a3ff']},
+  assumption:{zh:'前提',en:'ASSUMPTION',c:['#c27c0e','#f0b44c']},
+  problem:{zh:'问题',en:'PROBLEM',c:['#d13f8c','#ff85c0']},
+  background:{zh:'背景',en:'BACKGROUND',c:['#5b6b7a','#9fb0c0']},
+  limitation:{zh:'局限',en:'LIMITATION',c:['#8a6440','#c9a27e']}
+};
+const LINKS={
+  supports:{zh:'支撑',dash:''},
+  indirect:{zh:'间接',dash:'4 2.5',c:['#e0861a','#f5a742']},
+  answers:{zh:'填坑',dash:''},
+  qualifies:{zh:'限定',dash:'1.2 2.2',c:['#8a8f98','#8a939e']},
+  conflicts:{zh:'打架',dash:'',c:['#e5384f','#ff6b7f']}
+};
+const RULES=[
+  {k:'unfilled',t:'A',zh:'坑没填',d:'重要的主张没有箭头撑它；或者提出的问题、许下的承诺，后文没有回答。'},
+  {k:'jump',t:'A',zh:'跳帧',d:'两句之间只能间接连上（缺一步），或者要隔很远才连得上。'},
+  {k:'idle',t:'A',zh:'空转',d:'同一栏里一大段没有推动论证的内容：超过半栏、至少 8 行。'},
+  {k:'floating',t:'A',zh:'空中楼阁',d:'主线结论往回追，追到底也落不到证据上，只是主张撑主张。'},
+  {k:'cycle',t:'A',zh:'循环论证',d:'支撑关系连成了环。'},
+  {k:'orphan',t:'A',zh:'孤立证据',d:'这条证据没有撑任何东西。'},
+  {k:'external',t:'A',zh:'只靠引用',d:'结论只靠论文外部的引用撑着。只是提醒，不算问题。',info:1},
+  {k:'overreach',t:'B',zh:'说过头',d:'结论的口气比证据大。'},
+  {k:'implicit',t:'B',zh:'隐含前提',d:'推理要成立，得先默认一件论文没写出来的事。'},
+  {k:'alternative',t:'B',zh:'替代解释',d:'结果还可能是别的原因造成的，作者没排除。'},
+  {k:'conflict',t:'B',zh:'前后打架',d:'两处说法互相矛盾。'},
+  {k:'deflate',t:'B',zh:'先用后定义',d:'术语在定义之前就用上了。'},
+  {k:'unlocated',t:'L',zh:'没定位上',d:'引用的原文在 PDF 里找不到，这些标注没画出来。'},
+  {k:'approx',t:'L',zh:'近似定位',d:'引用和原文差了几个字，按近似位置画了虚线框。',info:1},
+  {k:'data',t:'L',zh:'数据问题',d:'连线指向不存在的标注、类型写错等。'}
+];
+const TIERS={A:'A 档 · 看箭头图就能算',B:'B 档 · 模型的判断',L:'定位'};
+
+const S={data:null,pdf:null,pages:[],ann:{},links:[],order:[],rank:{},loc:{},issues:[],
+  set:{view:'page',dim:0.55,main:false,links:'all',detail:false,inv:true,jp:3,jg:0,zoom:1},
+  hidden:new Set(),sel:null,hover:null,focusLink:null,twoCol:false,implRect:{},idle:[]};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dark=()=>document.documentElement.dataset.theme==='dark';
+const tc=t=>(TYPES[t]||TYPES.background).c[dark()?1:0];
+const cut=(s,n)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n)+'…':s};
+const WRE=/[\p{L}\p{N}]/u;
+function dehy(s){return String(s||'').replace(/\s+/g,' ').replace(/(\p{Ll})- (\p{Ll})/gu,'$1$2').trim()}
+function normQ(s){let o='';for(const ch of String(s||'').normalize('NFKC').toLowerCase())if(WRE.test(ch))o+=ch;return o}
+
+/* ---------- 启动 ---------- */
+function setLoader(msg,err){const l=$('#loader');l.classList.remove('hide');$('#ldMsg').innerHTML=err?'<div class="err">'+esc(msg)+'</div>':esc(msg)}
+function initTheme(){
+  // 默认浅色，不跟系统；用户点 ☀ 再切深色
+  document.documentElement.dataset.theme='light';
+}
+function b64ToBytes(b){const s=atob(b.replace(/\s+/g,''));const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+async function boot(){
+  initTheme();
+  const d=$('#logic-data').textContent.trim(),p=$('#pdf-data').textContent.trim();
+  if(!d||d.startsWith('__')||!p||p.startsWith('__')){showPicker();return}
+  try{await start(JSON.parse(d),b64ToBytes(p))}catch(e){console.error(e);setLoader('打开失败：'+(e&&e.message||e),true)}
+}
+function showPicker(){
+  $('#ldMsg').innerHTML='<div class="picker"><b>这是 paper-logic-view 的空模板</b><div style="color:var(--muted);font-size:13px;margin-top:4px">一般用 pack_logic.py 把 PDF 和标注打包进来。也可以在这里直接选文件预览。</div><label>论文 PDF</label><input type="file" id="fPdf" accept="application/pdf"><label>标注 JSON</label><input type="file" id="fJson" accept="application/json,.json"><br><button id="fGo">打开</button></div>';
+  $('#fGo').onclick=async()=>{
+    const fp=$('#fPdf').files[0],fj=$('#fJson').files[0];if(!fp||!fj)return;
+    try{const data=JSON.parse(await fj.text());await start(data,new Uint8Array(await fp.arrayBuffer()))}catch(e){setLoader('打开失败：'+(e&&e.message||e),true)}
+  };
+}
+async function start(data,bytes){
+  S.data=data;
+  setLoader('正在加载 PDF.js……');
+  if(typeof pdfjsLib==='undefined')throw new Error('PDF.js 没加载上：页面需要能访问 cdnjs.cloudflare.com');
+  try{const r=await fetch(WORKER_URL);if(!r.ok)throw 0;pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([await r.text()],{type:'text/javascript'}))}
+  catch(e){pdfjsLib.GlobalWorkerOptions.workerSrc=WORKER_URL}
+  const pdf=await pdfjsLib.getDocument({data:bytes}).promise;S.pdf=pdf;
+  let done=0;
+  setLoader('正在读取 '+pdf.numPages+' 页文字……');
+  S.pages=await Promise.all(Array.from({length:pdf.numPages},async(_,k)=>{
+    const page=await pdf.getPage(k+1),vp=page.getViewport({scale:1}),tcn=await page.getTextContent();
+    setLoader('正在读取文字：'+(++done)+' / '+pdf.numPages+' 页');
+    return {page,w:vp.width,h:vp.height,items:tcn.items.filter(it=>typeof it.str==='string').map(it=>geom(it,vp))};
+  }));
+  setLoader('正在把引用对到原文上……');
+  prepData();buildStream();locateAll();detectLayout();computeOrder();computeIssues();
+  buildUI();
+  $('#loader').classList.add('hide');
+}
+function geom(it,vp){
+  const t=pdfjsLib.Util.transform(vp.transform,it.transform);
+  const fh=Math.hypot(t[2],t[3])||Math.abs(it.height)||8;
+  const rot=Math.abs(t[1])>Math.abs(t[0])+1e-3||t[0]<0;
+  return {str:it.str,eol:!!it.hasEOL,x:t[4],base:t[5],fh,w:it.width,rot,top:t[5]-fh*0.82,bot:t[5]+fh*0.24};
+}
+
+/* ---------- 数据整理 ---------- */
+function prepData(){
+  const d=S.data;S.dataIssues=[];
+  (d.annotations||[]).forEach((a,i)=>{
+    if(!a||!a.id){S.dataIssues.push('第 '+(i+1)+' 条标注没有 id');return}
+    if(S.ann[a.id]){S.dataIssues.push('标注 id 重复：'+a.id);return}
+    if(!TYPES[a.type]){S.dataIssues.push(a.id+' 的类型 "'+a.type+'" 不认识，按背景显示');a.type='background'}
+    a.importance=[1,2,3].includes(+a.importance)?+a.importance:2;
+    S.ann[a.id]=a;
+  });
+  (d.links||[]).forEach(l=>{
+    if(!l||!S.ann[l.from]||!S.ann[l.to]){S.dataIssues.push('连线 '+(l&&l.from)+' → '+(l&&l.to)+' 指向不存在的标注');return}
+    if(!LINKS[l.type]){S.dataIssues.push('连线 '+l.from+' → '+l.to+' 的类型 "'+l.type+'" 不认识，按支撑显示');l.type='supports'}
+    S.links.push(l);
+  });
+}
+
+/* ---------- 原文定位 ---------- */
+function buildStream(){
+  const hay=[],mp=[],mi=[],mc=[];let raw=[];let rl=0;S.pageStart=[];
+  S.pages.forEach((pg,p)=>{
+    S.pageStart.push(hay.length);pg.rawStart=[];
+    pg.items.forEach((it,i)=>{
+      pg.rawStart.push(rl);let ci=0;
+      for(const ch of it.str){
+        const n=ch.normalize('NFKC').toLowerCase();
+        for(const k of n)if(WRE.test(k))for(let u=0;u<k.length;u++){hay.push(k[u]);mp.push(p);mi.push(i);mc.push(ci)}
+        ci+=ch.length;
+      }
+      const piece=it.str+(it.eol?'\n':'');raw.push(piece);rl+=piece.length;
+    });
+    raw.push('\n');rl+=1;
+  });
+  S.pageStart.push(hay.length);
+  S.hay=hay.join('');S.mp=mp;S.mi=mi;S.mc=mc;S.raw=raw.join('');
+}
+function locate(a){
+  const q=normQ(a.quote);
+  if(q.length<6)return {fail:'引用太短，或者只有公式、符号'};
+  const H=S.hay,P=S.pageStart,n=S.pages.length,pg=(a.page|0)-1,ranges=[];
+  if(pg>=0&&pg<n){ranges.push([P[pg],P[pg+1]]);ranges.push([P[Math.max(0,pg-1)],P[Math.min(n,pg+2)]])}
+  ranges.push([0,H.length]);
+  for(const [s,e] of ranges){const i=H.indexOf(q,s);if(i>=0&&i<e)return mk(i,i+q.length,false)}
+  const L=q.length;
+  if(L>=30){
+    const k=Math.min(20,Math.floor(L/3)),mid=Math.floor(L/2-k/2);
+    const pairs=[[0,L-k],[mid,L-k],[0,mid]];
+    for(const [s,e] of ranges)for(const [ao,bo] of pairs){
+      const A=q.substr(ao,k),B=q.substr(bo,k);let i=H.indexOf(A,s);
+      while(i>=0&&i<e){
+        const exp=i+(bo-ao),j=H.indexOf(B,Math.max(i+k,exp-Math.floor(L*0.3)));
+        if(j>=0&&j<=exp+L*0.3){const st=Math.max(0,i-ao),en=Math.min(H.length,j+(L-bo));return mk(st,en,true)}
+        i=H.indexOf(A,i+1);
+      }
+    }
+  }
+  return {fail:'在 PDF 里找不到这段文字'};
+}
+function mk(i,j,approx){
+  const segs=segments(i,j),p0=S.mp[i];
+  const pa=S.pages[S.mp[i]],pb=S.pages[S.mp[j-1]];
+  return {start:i,end:j,approx,page:p0+1,segs,
+    rawS:pa.rawStart[S.mi[i]]+S.mc[i],rawE:pb.rawStart[S.mi[j-1]]+S.mc[j-1]+1};
+}
+function segments(i,j){
+  const groups=[];let cur=null;
+  for(let k=i;k<j;k++){
+    const p=S.mp[k],it=S.mi[k],c=S.mc[k];
+    if(cur&&cur.p===p&&cur.i===it){cur.c1=Math.max(cur.c1,c)}else{cur={p,i:it,c0:c,c1:c};groups.push(cur)}
+  }
+  const rects=[];
+  for(const g of groups){
+    const it=S.pages[g.p].items[g.i];if(it.rot||!it.w)continue;
+    const L=it.str.length||1,x0=it.x+it.w*g.c0/L,x1=it.x+it.w*Math.min(L,g.c1+1)/L;
+    const last=rects[rects.length-1];
+    if(last&&last.p===g.p&&Math.abs(last.top-it.top)<it.fh*0.45&&x0-last.x1<8&&x0>last.x0-2){last.x1=Math.max(last.x1,x1);last.bot=Math.max(last.bot,it.bot);last.top=Math.min(last.top,it.top)}
+    else rects.push({p:g.p,x0,x1,top:it.top,bot:it.bot});
+  }
+  return rects;
+}
+function locateAll(){
+  for(const a of Object.values(S.ann)){
+    if(a.implicit){continue}
+    if(!a.quote){S.loc[a.id]={fail:'没有填 quote'};continue}
+    S.loc[a.id]=locate(a);
+  }
+}
+function detectLayout(){
+  let span=0,tot=0;
+  S.pages.forEach(pg=>pg.items.forEach(it=>{if(it.rot||it.str.trim().length<20)return;tot++;if(it.x<pg.w*0.45&&it.x+it.w>pg.w*0.55)span++}));
+  S.twoCol=tot>0&&span/tot<0.3;
+  const hs=[];S.pages.forEach(pg=>pg.items.forEach(it=>{if(!it.rot&&it.str.trim().length>3)hs.push(it.fh)}));
+  hs.sort((a,b)=>a-b);S.bodyFh=hs.length?hs[Math.floor(hs.length/2)]:10;
+}
+const located=id=>{const l=S.loc[id];return l&&!l.fail?l:null};
+function anchorRect(id){
+  const a=S.ann[id];if(!a)return null;
+  if(a.implicit)return S.implRect[id]||null;
+  const l=located(id);return l&&l.segs.length?l.segs[0]:null;
+}
+function computeOrder(){
+  const key={};
+  for(const a of Object.values(S.ann)){const l=located(a.id);if(l)key[a.id]=l.start}
+  for(const a of Object.values(S.ann))if(a.implicit){const k=a.anchor&&key[a.anchor];key[a.id]=k!=null?k-0.5:Infinity}
+  S.order=Object.keys(S.ann).sort((x,y)=>{const kx=key[x]!=null?key[x]:Infinity,ky=key[y]!=null?key[y]:Infinity;return kx-ky});
+  S.order.forEach((id,i)=>S.rank[id]=i);
+  // 隐含前提：放进锚点那一侧的页边轨道，不压正文
+  const rb=railBounds();
+  for(const a of Object.values(S.ann))if(a.implicit){
+    const r=a.anchor&&anchorRect(a.anchor);if(!r)continue;
+    const W=S.pages[r.p].w,G=railG(W),side=S.twoCol&&(r.x0+r.x1)/2>=W/2?'R':'L';
+    const room=side==='L'?rb.L+G-10:(W+G)-rb.R-10,w=Math.max(40,Math.min(110,room-22));
+    const lines=wrapW('隐含前提：'+a.text,w-6,4);
+    const x0=side==='L'?-G+2:W+G-2-w,h=lines.length*7.4+4;
+    S.implRect[a.id]={p:r.p,x0,x1:x0+w,top:r.top-1,bot:r.top-1+h,lines,side,rail:true};
+  }
+}
+function wrapW(t,max,maxLines){
+  const cw=ch=>/[\u0000-\u00ff]/.test(ch)?3.3:6.2,out=[];let cur='',cwid=0;
+  for(const ch of t){const k=cw(ch);if(cwid+k>max){out.push(cur);cur='';cwid=0}cur+=ch;cwid+=k}
+  if(cur)out.push(cur);
+  if(out.length>maxLines){out.length=maxLines;out[maxLines-1]=out[maxLines-1].slice(0,-1)+'…'}
+  return out;
+}
+
+/* ---------- 检查规则 ---------- */
+function annPage(id){const a=S.ann[id],l=located(id);if(l)return l.page;const r=S.implRect[id];return r?r.p+1:(a.page||null)}
+function computeIssues(){
+  const I=[],A=S.ann,inc={},out={};
+  for(const id in A){inc[id]=[];out[id]=[]}
+  S.links.forEach(l=>{inc[l.to].push(l);out[l.from].push(l)});
+  const sup=l=>l.type==='supports'||l.type==='indirect';
+  for(const a of Object.values(A)){
+    if(a.type==='claim'&&a.importance>=2&&!inc[a.id].some(sup)){
+      if(a.external)I.push({r:'external',ids:[a.id],w:'靠：'+a.external});
+      else I.push({r:'unfilled',ids:[a.id],w:'没有任何箭头撑它'});
+    }
+    if(a.type==='problem'&&!inc[a.id].some(l=>l.type==='answers'))I.push({r:'unfilled',ids:[a.id],w:'这个问题 / 承诺后文没有回答'});
+    if(a.type==='evidence'&&!out[a.id].length)I.push({r:'orphan',ids:[a.id],w:'没有从它出发的连线'});
+    if(a.implicit)I.push({r:'implicit',ids:[a.id],w:a.text||''});
+    if(a.type==='definition'&&a.first_used_page&&a.page&&a.first_used_page<a.page)I.push({r:'deflate',ids:[a.id],w:'第 '+a.first_used_page+' 页就用了，第 '+a.page+' 页才定义'});
+    const l=S.loc[a.id];
+    if(l&&l.fail)I.push({r:'unlocated',ids:[a.id],w:l.fail+'。引用：'+cut(a.quote,120)});
+    else if(l&&l.approx)I.push({r:'approx',ids:[a.id],w:'近似位置在第 '+l.page+' 页'});
+    if(a.implicit&&!S.implRect[a.id])I.push({r:'unlocated',ids:[a.id],w:'隐含前提的 anchor（'+(a.anchor||'未填')+'）没有定位上，挂不上去'});
+  }
+  S.links.forEach(l=>{
+    if(l.type==='indirect')I.push({r:'jump',ids:[l.from,l.to],link:l,w:'缺一步：'+(l.missing_step||'（没写缺的是哪一步）')});
+    else if(l.type==='supports'){
+      // 只查"理由在前、结论在后"的：读者得把前面的理由一直记到后面。结论在前、证据在后是正常的先挖坑后填坑。
+      const rf=S.rank[l.from],rt=S.rank[l.to],fwd=rf!=null&&rt!=null&&rf<rt;
+      const pf=annPage(l.from),pt=annPage(l.to),gap=fwd?rt-rf-1:0;
+      const far=[];if(fwd&&pf&&pt&&Math.abs(pf-pt)>=S.set.jp)far.push('跨了 '+Math.abs(pf-pt)+' 页');if(S.set.jg>0&&gap>=S.set.jg)far.push('中间隔了 '+gap+' 条标注');
+      if(far.length)I.push({r:'jump',ids:[l.from,l.to],link:l,w:'隔太远：'+far.join('，')});
+    }
+    if(l.overreach)I.push({r:'overreach',ids:[l.from,l.to],link:l,w:l.overreach});
+    if(l.alternative)I.push({r:'alternative',ids:[l.from,l.to],link:l,w:l.alternative});
+    if(l.type==='conflicts')I.push({r:'conflict',ids:[l.from,l.to],link:l,w:l.note||'两处说法矛盾'});
+  });
+  // 空中楼阁：主线主张往回追不到证据
+  for(const a of Object.values(A)){
+    if(a.type!=='claim'||a.importance<3||!inc[a.id].some(sup))continue;
+    const seen=new Set([a.id]),st=[a.id];let ok=false;
+    while(st.length&&!ok){const x=st.pop();for(const l of inc[x]){if(!sup(l)||seen.has(l.from))continue;const f=A[l.from];if(f.type==='evidence'||f.external){ok=true;break}seen.add(l.from);st.push(l.from)}}
+    if(!ok)I.push({r:'floating',ids:[a.id],w:'往回追了 '+(seen.size-1)+' 条，都不是证据'});
+  }
+  // 循环论证
+  const color={},cycles=[],keyset=new Set();
+  const dfs=(u,path)=>{color[u]=1;path.push(u);
+    for(const l of out[u]){if(!sup(l))continue;const v=l.to;
+      if(color[v]===1){const cyc=path.slice(path.indexOf(v));const k=[...cyc].sort().join(',');if(!keyset.has(k)){keyset.add(k);cycles.push(cyc)}}
+      else if(!color[v])dfs(v,path)}
+    path.pop();color[u]=2};
+  for(const id in A)if(!color[id])dfs(id,[]);
+  cycles.forEach(c=>I.push({r:'cycle',ids:c,w:c.map(id=>TYPES[A[id].type].zh+' '+id).join(' → ')+' → 回到起点'}));
+  (S.dataIssues||[]).forEach(t=>I.push({r:'data',ids:[],w:t}));
+  computeIdle().forEach(x=>I.push(x));
+  S.issues=I;
+}
+function computeIdle(){
+  const res=[],fh=S.bodyFh;
+  // 参考文献从哪开始
+  let ref=null;
+  for(let p=0;p<S.pages.length&&!ref;p++)for(const it of S.pages[p].items){
+    const n=normQ(it.str);if(it.str.trim().length<24&&/^(\d+|[a-z])?(references|bibliography|参考文献)$/.test(n)){ref={p,it};break}
+  }
+  const colOf=(it,W)=>S.twoCol?((it.x+it.w/2)<W/2?0:1):0;
+  const cover=[];
+  for(const a of Object.values(S.ann)){if(a.importance<2)continue;const l=located(a.id);if(l)l.segs.forEach(s=>cover.push(s))}
+  S.pages.forEach((pg,p)=>{
+    if(ref&&p>ref.p)return;
+    const refCol=ref&&p===ref.p?colOf(ref.it,pg.w):null;
+    for(const c of (S.twoCol?[0,1]:[0])){
+      if(ref&&p===ref.p&&c>refCol)continue;
+      const its=pg.items.filter(it=>!it.rot&&it.str.trim()&&it.fh>fh*0.85&&it.fh<fh*1.2&&colOf(it,pg.w)===c&&!(ref&&p===ref.p&&c===refCol&&it.base>=ref.it.base));
+      its.sort((a,b)=>a.base-b.base||a.x-b.x);
+      const lines=[];
+      for(const it of its){const L=lines[lines.length-1];if(L&&Math.abs(L.base-it.base)<fh*0.5){L.x0=Math.min(L.x0,it.x);L.x1=Math.max(L.x1,it.x+it.w);L.chars+=it.str.length}else lines.push({base:it.base,top:it.top,bot:it.bot,x0:it.x,x1:it.x+it.w,chars:it.str.length})}
+      const body=lines.filter(L=>L.chars>=3);if(body.length<8)continue;
+      const colH=body[body.length-1].bot-body[0].top;
+      body.forEach(L=>L.cov=cover.some(s=>s.p===p&&s.top<L.bot-1&&s.bot>L.top+1&&s.x0<L.x1&&s.x1>L.x0));
+      let run=[];
+      const flush=()=>{if(run.length>=8){const h=run[run.length-1].bot-run[0].top;if(h>=colH*0.5)res.push({r:'idle',ids:[],idle:{p,top:run[0].top,bot:run[run.length-1].bot,x0:Math.min(...run.map(x=>x.x0)),x1:Math.max(...run.map(x=>x.x1))},w:'第 '+(p+1)+' 页'+(S.twoCol?(c?'右栏':'左栏'):'')+'，连续 '+run.length+' 行没有推动论证的标注'})}run=[]};
+      body.forEach((L,i)=>{const prev=body[i-1];if(L.cov||(prev&&L.top-prev.bot>fh*2.5)){flush()}if(!L.cov)run.push(L)});
+      flush();
+    }
+  });
+  S.idle=res.map(x=>x.idle);
+  return res;
+}
+
+/* ---------- 界面 ---------- */
+function buildUI(){
+  const d=S.data,pp=d.paper||{};
+  $('#ttl').textContent=pp.title||'论文逻辑图';document.title=(pp.title?pp.title+' · ':'')+'逻辑图';
+  $('#modeBadge').textContent=d.mode==='write'?'查草稿':'读论文';
+  const src=[];if(pp.source)src.push(/^https?:/.test(pp.source)?'<a href="'+esc(pp.source)+'" target="_blank" rel="noopener">出处</a>':esc(pp.source));if(pp.license)src.push('许可：'+esc(pp.license));
+  $('#src').innerHTML=src.join(' · ');
+  $('#sum').textContent=d.summary||'';
+  if(innerWidth<760)S.set.view='reflow';
+  if(innerWidth<760||(d.mode!=='write'&&innerWidth<1100))$('#main').classList.add('noissues');
+  bindToolbar();buildLegend();buildPages();renderIssues();syncToolbar();applyView();
+  addEventListener('resize',debounce(()=>{layoutPages();if(S.set.view==='reflow')drawReflowArcs()},150));
+}
+function debounce(f,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}}
+function bindToolbar(){
+  $('#segView').onclick=e=>{const v=e.target.dataset.v;if(v){S.set.view=v;applyView()}};
+  $('#segLinks').onclick=e=>{const v=e.target.dataset.v;if(v){S.set.links=v;syncToolbar();drawArrowsAll();drawReflowArcs()}};
+  $('#dim').value=S.set.dim;$('#dim').oninput=e=>{S.set.dim=+e.target.value;drawBaseAll();styleReflowDim()};
+  $('#tgMain').onclick=()=>{S.set.main=!S.set.main;syncToolbar();refreshAll()};
+  $('#tgDetail').onclick=()=>{S.set.detail=!S.set.detail;syncToolbar();drawBaseAll();drawArrowsAll()};
+  $('#zIn').onclick=()=>{S.set.zoom=Math.min(3,S.set.zoom*1.2);layoutPages()};
+  $('#zOut').onclick=()=>{S.set.zoom=Math.max(0.5,S.set.zoom/1.2);layoutPages()};
+  $('#tgIssues').onclick=toggleIssues;$('#mIss').onclick=toggleIssues;
+  $('#mView').onclick=()=>{S.set.view=S.set.view==='page'?'reflow':'page';applyView()};
+  $('#tgTheme').onclick=()=>{document.documentElement.dataset.theme=dark()?'light':'dark';syncToolbar();buildLegend();refreshAll()};
+  $('#tgInv').onclick=()=>{S.set.inv=!S.set.inv;syncToolbar();S.pages.forEach(pg=>pg.div.classList.toggle('inv',S.set.inv));drawBaseAll()};
+  $('#tgSet').onclick=e=>{const s=$('#settings');s.classList.toggle('show');const r=e.target.getBoundingClientRect();s.style.top=(r.bottom+6)+'px';s.style.left=Math.max(8,Math.min(innerWidth-270,r.left-200))+'px'};
+  $('#jp').value=S.set.jp;$('#jg').value=S.set.jg;
+  const th=()=>{S.set.jp=Math.max(1,+$('#jp').value||3);S.set.jg=Math.max(0,+$('#jg').value||0);computeIssues();renderIssues()};
+  $('#jp').onchange=th;$('#jg').onchange=th;
+  document.addEventListener('click',e=>{if(!e.target.closest('#settings,#tgSet'))$('#settings').classList.remove('show')});
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{const w=b.dataset.close;if(w==='issues'){$('#issues').classList.remove('open');if(innerWidth<760)$('#main').classList.add('noissues')}else{$('#detail').classList.remove('open');select(null)}});
+  addEventListener('keydown',e=>{if(e.key==='Escape'){select(null);$('#settings').classList.remove('show')}});
+}
+function toggleIssues(){
+  const m=$('#main');
+  if(innerWidth<760){const open=!$('#issues').classList.contains('open');m.classList.toggle('noissues',!open);$('#issues').classList.toggle('open',open)}
+  else m.classList.toggle('noissues');
+  syncToolbar();layoutPages();
+}
+function syncToolbar(){
+  document.querySelectorAll('#segView button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.set.view));
+  document.querySelectorAll('#segLinks button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.set.links));
+  $('#tgMain').classList.toggle('on',S.set.main);$('#tgDetail').classList.toggle('on',S.set.detail);
+  $('#tgIssues').classList.toggle('on',!$('#main').classList.contains('noissues'));
+  $('#tgTheme').textContent=dark()?'☀':'☾';
+  $('#tgInv').style.display=dark()?'':'none';$('#tgInv').classList.toggle('on',S.set.inv);
+  $('#zoomGrp').style.visibility=S.set.view==='page'?'visible':'hidden';
+  $('#mView').textContent=S.set.view==='page'?'重排':'原页';
+}
+function buildLegend(){
+  const cnt={};Object.values(S.ann).forEach(a=>cnt[a.type]=(cnt[a.type]||0)+1);
+  let h='';
+  for(const [k,t] of Object.entries(TYPES)){if(!cnt[k])continue;h+='<button class="chip'+(S.hidden.has(k)?' off':'')+'" data-t="'+k+'" title="点击隐藏 / 显示"><i style="background:'+tc(k)+'"></i>'+t.zh+' '+t.en+' <span style="color:var(--muted)">'+cnt[k]+'</span></button>'}
+  for(const [k,l] of Object.entries(LINKS)){
+    if(!S.links.some(x=>x.type===k))continue;
+    const c=l.c?l.c[dark()?1:0]:'var(--ink)';
+    h+='<span class="chip ln"><svg viewBox="0 0 22 8"><line x1="1" y1="4" x2="17" y2="4" stroke="'+c+'" stroke-width="1.6" stroke-dasharray="'+l.dash+'"/><path d="M15,1 L21,4 L15,7 Z" fill="'+(k==='answers'?'none':c)+'" stroke="'+c+'" stroke-width="1"/></svg>'+l.zh+'</span>';
+  }
+  $('#legend').innerHTML=h;
+  $('#legend').onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;const k=b.dataset.t;S.hidden.has(k)?S.hidden.delete(k):S.hidden.add(k);buildLegend();refreshAll()};
+}
+function applyView(){
+  const pg=S.set.view==='page';
+  $('#pages').style.display=pg?'':'none';$('#reflow').style.display=pg?'none':'block';
+  syncToolbar();
+  if(pg){layoutPages();drawBaseAll();drawArrowsAll()}else{drawReflow()}
+}
+function refreshAll(){if(S.set.view==='page'){drawBaseAll();drawArrowsAll()}else drawReflow();renderDetail()}
+const vis=id=>{const a=S.ann[id];if(!a||S.hidden.has(a.type))return false;if(S.set.main&&a.importance<3)return false;return a.implicit?!!S.implRect[id]:!!located(id)};
+
+/* ---------- 原页视图 ---------- */
+let io=null;
+function buildPages(){
+  const box=$('#pages');box.innerHTML='';
+  io=new IntersectionObserver(es=>es.forEach(e=>{const p=+e.target.dataset.p;S.pages[p].seen=e.isIntersecting;if(e.isIntersecting)renderCanvas(p)}),{root:$('#stage'),rootMargin:'900px 0px'});
+  S.pages.forEach((pg,p)=>{
+    const div=document.createElement('div');div.className='page'+(S.set.inv?' inv':'');div.dataset.p=p;
+    div.innerHTML='<canvas></canvas><svg class="base" viewBox="0 0 '+pg.w+' '+pg.h+'"></svg><svg class="arr" viewBox="0 0 '+pg.w+' '+pg.h+'"></svg><span class="pno">第 '+(p+1)+' 页</span>';
+    box.appendChild(div);pg.div=div;pg.canvas=div.querySelector('canvas');pg.base=div.querySelector('.base');pg.arr=div.querySelector('.arr');
+    pg.base.addEventListener('mouseover',e=>{const t=e.target.closest('[data-id]');if(t&&S.hover!==t.dataset.id){S.hover=t.dataset.id;drawArrowsAll()}});
+    pg.base.addEventListener('mouseout',e=>{const t=e.target.closest('[data-id]');if(t&&!(e.relatedTarget&&e.relatedTarget.closest&&e.relatedTarget.closest('[data-id="'+t.dataset.id+'"]'))){S.hover=null;drawArrowsAll()}});
+    pg.base.addEventListener('click',e=>{const t=e.target.closest('[data-id]');if(t)select(t.dataset.id)});
+    pg.arr.addEventListener('click',e=>{const t=e.target.closest('[data-goto]');if(t){select(t.dataset.goto);scrollToAnn(t.dataset.goto)}});
+    io.observe(div);
+  });
+}
+function layoutPages(){
+  if(!S.pages.length)return;
+  const st=$('#stage'),pad=innerWidth<760?16:40;
+  S.pages.forEach(pg=>{const k=pg.w/(pg.w+2*railG(pg.w)),base=Math.min((st.clientWidth-pad)*k,920);
+    const w=Math.max(200,base*S.set.zoom),m=w*railG(pg.w)/pg.w;
+    pg.div.style.width=w+'px';pg.div.style.height=(w*pg.h/pg.w)+'px';const fit=w+2*m<=st.clientWidth-pad;pg.div.style.marginLeft=pg.div.style.marginRight=fit?'auto':m+'px'});
+  S.pages.forEach((pg,p)=>{if(pg.seen)renderCanvas(p)});
+}
+async function renderCanvas(p){
+  const pg=S.pages[p],cssW=pg.div.clientWidth;if(!cssW)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2.5),scale=cssW/pg.w*dpr;
+  if(pg.rendered&&Math.abs(pg.rendered-scale)<0.01)return;pg.rendered=scale;
+  const vp=pg.page.getViewport({scale});
+  if(pg.task){try{pg.task.cancel()}catch(e){}}
+  const c=document.createElement('canvas');c.width=Math.floor(vp.width);c.height=Math.floor(vp.height);
+  pg.task=pg.page.render({canvasContext:c.getContext('2d'),viewport:vp});
+  try{await pg.task.promise;pg.canvas.replaceWith(c);pg.canvas=c}catch(e){}
+}
+function dimColor(){return dark()&&S.set.inv?'#141414':'#ffffff'}
+function drawBaseAll(){S.pages.forEach((pg,p)=>drawBase(p))}
+function drawBase(p){
+  const pg=S.pages[p],W=pg.w,H=pg.h,dk=dark();
+  let holes='',hl='',lab='',idl='';
+  for(const id of S.order){
+    if(!vis(id))continue;const a=S.ann[id],c=tc(a.type);
+    if(a.implicit){
+      const r=S.implRect[id];if(r.p!==p)continue;
+      holes+='<rect x="'+(r.x0-1)+'" y="'+(r.top-1)+'" width="'+(r.x1-r.x0+2)+'" height="'+(r.bot-r.top+2)+'" fill="#000"/>';
+      hl+='<g class="imp" data-id="'+id+'"><rect x="'+r.x0+'" y="'+r.top+'" width="'+(r.x1-r.x0)+'" height="'+(r.bot-r.top)+'" rx="2" fill="'+(dk&&S.set.inv?'#1d1d1d':'#fffaf0')+'" stroke="'+c+'" stroke-width=".8" stroke-dasharray="2.5 1.5"/>'+r.lines.map((t,i)=>'<text x="'+(r.x0+3)+'" y="'+(r.top+8+i*7.4)+'" font-size="6" fill="'+c+'" font-family="sans-serif">'+esc(t)+'</text>').join('')+'</g>';
+      continue;
+    }
+    const l=located(id),segs=l.segs.filter(s=>s.p===p);if(!segs.length)continue;
+    const op=dk&&S.set.inv?0.34:0.24,hole=a.importance>=2?'#000':'#8a8a8a';
+    for(const s of segs){
+      holes+='<rect x="'+(s.x0-1.5)+'" y="'+(s.top-1)+'" width="'+(s.x1-s.x0+3)+'" height="'+(s.bot-s.top+2)+'" fill="'+hole+'"/>';
+      hl+='<rect class="h" data-id="'+id+'" x="'+s.x0+'" y="'+s.top+'" width="'+(s.x1-s.x0)+'" height="'+(s.bot-s.top)+'" fill="'+c+'" fill-opacity="'+(a.importance===1?op*0.6:op)+'"'+(l.approx?' stroke="'+c+'" stroke-width=".7" stroke-dasharray="2 1.5"':'')+'/>';
+      if(a.importance>=2)hl+='<rect x="'+s.x0+'" y="'+(s.bot-0.9)+'" width="'+(s.x1-s.x0)+'" height="'+(a.importance===3?1.3:0.8)+'" fill="'+c+'" pointer-events="none"/>';
+    }
+    if(S.set.detail&&l.segs[0].p===p){
+      const s=l.segs[0],t=TYPES[a.type].zh+(a.importance===3?' ★':''),w=t.length*6.2+4;
+      lab+='<g pointer-events="none"><rect x="'+s.x0+'" y="'+(s.top-7.4)+'" width="'+w+'" height="7.2" rx="1.5" fill="'+c+'"/><text x="'+(s.x0+2)+'" y="'+(s.top-1.9)+'" font-size="5.8" font-weight="700" fill="'+(dk?'#111':'#fff')+'" font-family="sans-serif">'+esc(t)+'</text></g>';
+    }
+  }
+  S.idle.forEach(r=>{if(r.p!==p)return;const left=!S.twoCol||(r.x0+r.x1)/2<W/2,x=left?r.x0-7:r.x1+7,d=left?3:-3;
+    idl+='<path d="M'+(x+d)+','+r.top+' L'+x+','+r.top+' L'+x+','+r.bot+' L'+(x+d)+','+r.bot+'" fill="none" stroke="var(--warnA)" stroke-width=".9" stroke-dasharray="2 1.6"/><text x="'+(x-(left?2:-2))+'" y="'+((r.top+r.bot)/2)+'" font-size="6.5" fill="var(--warnA)" text-anchor="middle" transform="rotate(-90 '+(x-(left?2:-2))+' '+((r.top+r.bot)/2)+')" font-family="sans-serif" dy="'+(left?-1:5)+'">空转</text>'});
+  pg.base.innerHTML='<defs><mask id="mk'+p+'" maskUnits="userSpaceOnUse" x="0" y="0" width="'+W+'" height="'+H+'"><rect width="'+W+'" height="'+H+'" fill="#fff"/>'+holes+'</mask></defs><rect width="'+W+'" height="'+H+'" fill="'+dimColor()+'" fill-opacity="'+S.set.dim+'" mask="url(#mk'+p+')" pointer-events="none"/><g>'+hl+'</g>'+lab+idl;
+}
+function focusIds(){
+  if(S.focusLink)return new Set([S.focusLink.from,S.focusLink.to]);
+  const f=S.hover||S.sel;return f?new Set([f]):new Set();
+}
+function shownLinks(){
+  const F=focusIds();
+  return S.links.filter(l=>{
+    if(!vis(l.from)||!vis(l.to))return false;
+    if(S.focusLink)return l===S.focusLink||(S.set.links==='all');
+    if(S.set.links==='off')return false;
+    if(S.set.links==='all')return true;
+    return F.has(l.from)||F.has(l.to);
+  });
+}
+function linkColor(l){const m=LINKS[l.type];return m.c?m.c[dark()?1:0]:tc(S.ann[l.from].type)}
+function side(r,W){return !S.twoCol||(r.x0+r.x1)/2<W/2?'L':'R'}
+function bez(P0,C1,C2,P3,t){const u=1-t;return [u*u*u*P0[0]+3*u*u*t*C1[0]+3*u*t*t*C2[0]+t*t*t*P3[0],u*u*u*P0[1]+3*u*u*t*C1[1]+3*u*t*t*C2[1]+t*t*t*P3[1]]}
+function trimEnd(P,C,len){let dx=P[0]-C[0],dy=P[1]-C[1];const n=Math.hypot(dx,dy)||1;return [P[0]-dx/n*len,P[1]-dy/n*len]}
+const headLen=(hollow,sc)=>(hollow?5.4:3.9)*(sc||1);
+function head(P,C,c,hollow,bg,sc){
+  sc=sc||1;let dx=P[0]-C[0],dy=P[1]-C[1];const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;
+  const L=5.4*sc,Wd=2.7*sc,notch=1.7*sc,nx=-dy,ny=dx,f=v=>v.toFixed(2);
+  const at=(t,w)=>[P[0]-t*dx+w*nx,P[1]-t*dy+w*ny];
+  const l=at(L,Wd),r=at(L,-Wd),i=at(L-notch,0),q1=at(L*0.45,Wd*0.32),q2=at(L*0.45,-Wd*0.32);
+  return '<path d="M'+f(P[0])+','+f(P[1])+' Q'+q1.map(f)+' '+l.map(f)+' L'+i.map(f)+' L'+r.map(f)+' Q'+q2.map(f)+' '+f(P[0])+','+f(P[1])+'Z" fill="'+(hollow?bg:c)+'" stroke="'+c+'" stroke-width=".55" stroke-linejoin="round"/>';
+}
+/* ---------- 箭头：一律走页面两侧的轨道，不压正文 ---------- */
+function railG(W){return W*(innerWidth<760?0.1:0.16)}
+function railBounds(){
+  if(S.rb)return S.rb;
+  const xs=[],rs=[],ts=[],bs=[],fh=S.bodyFh||10;
+  S.pages.forEach(pg=>pg.items.forEach(it=>{if(it.rot||it.str.trim().length<3||Math.abs(it.fh-fh)>fh*0.25)return;xs.push(it.x);rs.push(it.x+it.w);ts.push(it.top);bs.push(it.bot)}));
+  const pc=(a,q,d)=>{if(!a.length)return d;a.sort((x,y)=>x-y);return a[Math.min(a.length-1,Math.max(0,Math.floor(a.length*q)))]};
+  const W=S.pages[0].w,H=S.pages[0].h;
+  let L=pc(xs,0.02,W*0.1),R=pc(rs,0.98,W*0.9),T=pc(ts,0.01,H*0.08),B=pc(bs,0.99,H*0.92);
+  for(const a of Object.values(S.ann)){const l=located(a.id);if(l)l.segs.forEach(sg=>{L=Math.min(L,sg.x0);R=Math.max(R,sg.x1)})}
+  return S.rb={L,R,T,B};
+}
+function rounded(pts,r){
+  let d='M'+pts[0][0]+','+pts[0][1];
+  for(let i=1;i<pts.length-1;i++){
+    const [x0,y0]=pts[i-1],[x1,y1]=pts[i],[x2,y2]=pts[i+1];
+    const l1=Math.hypot(x1-x0,y1-y0),l2=Math.hypot(x2-x1,y2-y1),rr=Math.min(r,l1/2,l2/2);
+    if(rr<0.3){d+=' L'+x1+','+y1;continue}
+    const a=[x1-(x1-x0)/l1*rr,y1-(y1-y0)/l1*rr],b=[x1+(x2-x1)/l2*rr,y1+(y2-y1)/l2*rr];
+    d+=' L'+a+' Q'+x1+','+y1+' '+b;
+  }
+  const e=pts[pts.length-1];return d+' L'+e[0]+','+e[1];
+}
+function drawArrowsAll(){
+  const Ls=shownLinks(),F=focusIds(),per=S.pages.map(()=>'');
+  const dk=dark(),bg=dk&&S.set.inv?'#141414':'#ffffff';
+  const rb=railBounds(),EL=rb.L-5,ER=rb.R+5,E=side=>side==='L'?EL:ER;
+  const focused=l=>F.has(l.from)||F.has(l.to)||S.focusLink===l;
+  const showBadge=l=>S.set.detail||focused(l);
+  const sideOf=(r,W,dflt)=>r.rail?r.side:S.twoCol?((r.x0+r.x1)/2<W/2?'L':'R'):dflt;
+  const yc=r=>r.rail?r.top+5:(r.top+r.bot)/2;
+  // 端点 y：指向这句话里真正贴着栏边的那一行（多行的取中间一行），不指向行首没高亮的别的句子
+  const leaders=S.pages.map(()=>'');
+  const ay=(id,side)=>{
+    const r=anchorRect(id);if(r.rail)return r.top+5;
+    const segs=located(id).segs.filter(g=>g.p===r.p);
+    const pick=segs.filter(g=>side==='L'?g.x0-rb.L<16:rb.R-g.x1<16);
+    if(pick.length){const g=pick[Math.floor((pick.length-1)/2)];return (g.top+g.bot)/2}
+    // 整句都在一行中间：在行距里画一条虚引线，从栏边引到高亮的起点
+    const g=segs[0],y=g.bot+0.9,x1=side==='L'?EL+3:g.x1,x2=side==='L'?g.x0:ER-3,c=tc(S.ann[id].type);
+    leaders[r.p]+='<path d="M'+x1+','+y+' L'+x2+','+y+'" stroke="'+c+'" stroke-width=".6" stroke-dasharray="1 1.6" opacity=".7" pointer-events="none"/>';
+    return y;
+  };
+  const ex=(id,side)=>{const r=anchorRect(id);return r&&r.rail?(side==='L'?r.x1:r.x0):E(side)};
+  // 1. 把每条连线拆成轨道上的"段"
+  const segs=[],rails={};   // rails[p+side] = [{lo,hi,seg}]
+  const addRail=(p,side,lo,hi,o)=>{(rails[p+side]=rails[p+side]||[]).push({lo:Math.min(lo,hi),hi:Math.max(lo,hi),o})};
+  const chans={};
+  for(const l of Ls){
+    const fr=anchorRect(l.from),tr=anchorRect(l.to);if(!fr||!tr)continue;
+    const fwd=(S.rank[l.from]||0)<(S.rank[l.to]||0),dflt=fwd?'R':'L';
+    if(fr.p===tr.p){
+      const p=fr.p,W=S.pages[p].w,H=S.pages[p].h,sf=sideOf(fr,W,dflt),st=sideOf(tr,W,dflt),yf=ay(l.from,sf),yt=ay(l.to,st);
+      if(sf===st){const o={l,kind:'same',p,side:sf,yf,yt};segs.push(o);addRail(p,sf,yf,yt,o)}
+      else{
+        const top=(yf+yt)/2<H/2,ch=p+(top?'T':'B'),k=chans[ch]=(chans[ch]||0)+1;
+        const cy=top?rb.T-5-(k-1)*3.2:rb.B+5+(k-1)*3.2;
+        const o={l,kind:'cross',p,sf,st,yf,yt,cy};segs.push(o);
+        o.rf={};o.rt={};addRail(p,sf,yf,cy,o.rf);addRail(p,st,yt,cy,o.rt);
+      }
+    }else{
+      const down=tr.p>fr.p;
+      const s1=sideOf(fr,S.pages[fr.p].w,down?'R':'L'),s2=sideOf(tr,S.pages[tr.p].w,down?'R':'L');
+      segs.push({l,kind:'stub',p:fr.p,side:s1,y:ay(l.from,s1),out:true,txt:(down?'↓ ':'↑ ')+'第'+(tr.p+1)+'页',go:l.to});
+      segs.push({l,kind:'stub',p:tr.p,side:s2,y:ay(l.to,s2),out:false,txt:'来自第'+(fr.p+1)+'页',go:l.from});
+    }
+  }
+  // 1b. 同一句上的多个跨页短箭头合并：页码相同的只画一次，不同的标签上下错开
+  const sg={};
+  for(const o of segs)if(o.kind==='stub'){const k=o.p+o.side+(o.out?'o':'i')+Math.round(o.y);(sg[k]=sg[k]||[]).push(o)}
+  for(const k in sg){
+    const g=sg[k],seen=new Map();
+    for(const o of g){const prev=seen.get(o.txt);if(prev){o.dup=true;if(focused(o.l))prev.l=o.l;continue}seen.set(o.txt,o)}
+    const keep=g.filter(o=>!o.dup);keep.forEach((o,i)=>{o.k=i;o.n=keep.length;o.ly=o.y+(i-(keep.length-1)/2)*8.5});
+  }
+  // 相邻几行的标签也不许叠：同一侧按 y 排开，至少隔 8.5
+  const sideStubs={};for(const o of segs)if(o.kind==='stub'&&!o.dup)(sideStubs[o.p+o.side]=sideStubs[o.p+o.side]||[]).push(o);
+  for(const k in sideStubs){const a=sideStubs[k].sort((x,y)=>x.ly-y.ly);for(let i=1;i<a.length;i++)if(a[i].ly<a[i-1].ly+8.5)a[i].ly=a[i-1].ly+8.5}
+  // 2. 每条轨道分车道：短的靠里，长的靠外，重叠的不共用一条车道
+  const laneX={},outer={};
+  for(const key in rails){
+    const arr=rails[key].sort((a,b)=>(a.hi-a.lo)-(b.hi-b.lo)),lanes=[];
+    for(const it of arr){let i=0;while((lanes[i]||[]).some(u=>!(it.hi+2.5<u.lo||it.lo-2.5>u.hi)))i++;(lanes[i]=lanes[i]||[]).push(it);it.lane=i}
+    const p=+key.slice(0,-1),side=key.slice(-1),W=S.pages[p].w,G=railG(W);
+    const room=side==='L'?EL+G-48:(W+G)-ER-48,sp=Math.max(1.6,Math.min(4.2,room/Math.max(1,lanes.length)));
+    for(const it of arr){const x=side==='L'?EL-4-it.lane*sp:ER+4+it.lane*sp;if(it.o.kind)it.o.x=x;else it.o.x=x}
+    outer[key]=side==='L'?EL-4-lanes.length*sp:ER+4+lanes.length*sp;
+  }
+  // 3. 画：同侧用平滑的 C 形弧；跨栏用大圆角折线；颜色从理由的类型渐变到结论的类型
+  const defs=S.pages.map(()=>'');let gi=0;
+  for(const o of segs){
+    const l=o.l,m=LINKS[l.type],on=focused(l),c=linkColor(l);
+    const op=F.size&&!on?' opacity=".18"':'',sw=on?1.7:1.1;
+    let pts,s='',mid,d;
+    if(o.kind==='stub'){
+      if(o.dup)continue;
+      const key=o.p+o.side,e=E(o.side),Lf=o.side==='L',ox=(outer[key]!=null?outer[key]:e+(Lf?-6:6))+(Lf?-4:4),ly=o.ly;
+      const st=' stroke="'+c+'" stroke-width="'+sw+'" fill="none" stroke-linecap="round"'+(m.dash?' stroke-dasharray="'+m.dash+'"':'');
+      s+='<g class="lk" data-goto="'+o.go+'"'+op+'>';
+      if(o.k===0){
+        const P1=o.out?[e,o.y]:[ox,o.y],P2=o.out?[ox,o.y]:[e,o.y];
+        const hol=l.type==='answers',P2t=trimEnd(P2,P1,headLen(hol,on?1.15:1));
+        s+='<path d="M'+P1+' L'+P2t+'"'+st+'/>'+head(P2,P1,c,hol,bg,on?1.15:1);
+        if(on)s+='<path class="flow" d="M'+P1+' L'+P2t+'" stroke="'+bg+'" stroke-width="'+(sw*0.7)+'" fill="none"/>';
+      }
+      if(Math.abs(ly-o.y)>0.1)s+='<path d="M'+ox+','+o.y+' Q'+ox+','+ly+' '+(ox+(Lf?-2:2))+','+ly+'" stroke="'+c+'" stroke-width=".6" fill="none" opacity=".7"/>';
+      const w=o.txt.length*5.4+6,rx=Lf?ox-2-w:ox+2;
+      s+='<rect x="'+rx+'" y="'+(ly-4.3)+'" width="'+w+'" height="8.6" rx="4.3" fill="'+(dk?'#1d2129':'#fff')+'" stroke="'+c+'" stroke-width=".55" stroke-opacity=".8"/>';
+      s+='<text x="'+(rx+w/2)+'" y="'+(ly+2)+'" font-size="5.6" font-weight="600" fill="'+c+'" text-anchor="middle" font-family="sans-serif">'+esc(o.txt)+'</text></g>';
+      if(showBadge(l)&&!o.out&&(l.type==='indirect'||l.overreach||l.alternative))s+=badge(l,clampBadge(l,[ox,ly+10],o.side,o.p),c,true,dk);
+      per[o.p]+=s;continue;
+    }
+    if(o.kind==='same'){
+      // 形状随长度变：鼓出的距离 = 车道偏移 + 随跨度增长的一段（有上限）；
+      // 跨度短时两端斜着进出，跨度长时两端接近水平，弧线始终平滑
+      const x1=ex(l.from,o.side),x2=ex(l.to,o.side),e=E(o.side),sg=o.side==='L'?-1:1,W=S.pages[o.p].w;
+      const h=Math.abs(o.yt-o.yf),dir=o.yt>=o.yf?1:-1,room=(o.side==='L'?EL:W-ER)+railG(W)-28;
+      const bulge=Math.min(room,Math.abs(o.x-e)+Math.min(22,2+h*0.07));
+      const tau=Math.max(0.05,Math.min(0.32,0.34-h/500)),cx=e+sg*bulge/0.75;
+      const C1=[cx,o.yf+dir*h*tau],C2=[cx,o.yt-dir*h*tau];
+      if(h<6){C1[1]=o.yf-3;C2[1]=o.yt+3}
+      pts=[[x1,o.yf],C1,C2,[x2,o.yt]];
+      const hs=on?1.15:1,P0=l.type==='conflicts'?trimEnd(pts[0],C1,headLen(false,hs)):pts[0],P3=trimEnd(pts[3],C2,headLen(l.type==='answers',hs));
+      d='M'+P0+' C'+C1+' '+C2+' '+P3;mid=bez(pts[0],C1,C2,pts[3],0.5);
+    }else{
+      const xf=o.rf.x,xt=o.rt.x;pts=[[ex(l.from,o.sf),o.yf],[xf,o.yf],[xf,o.cy],[xt,o.cy],[xt,o.yt],[ex(l.to,o.st),o.yt]];
+      const hs=on?1.15:1,q=pts.slice(),k=q.length;q[k-1]=trimEnd(q[k-1],q[k-2],headLen(l.type==='answers',hs));if(l.type==='conflicts')q[0]=trimEnd(q[0],q[1],headLen(false,hs));
+      d=rounded(q,7);mid=[S.pages[o.p].w/2,o.cy];
+    }
+    const n=pts.length,A=pts[0],Z=pts[n-1];
+    // 渐变：只给"支撑/回应"这类沿用标注颜色的连线；间接、限定、打架保留自己的颜色
+    let stroke=c;
+    if(!m.c&&S.ann[l.to]){const c2=tc(S.ann[l.to].type),id='lg'+o.p+'_'+(gi++);
+      defs[o.p]+='<linearGradient id="'+id+'" gradientUnits="userSpaceOnUse" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+Z[0]+'" y2="'+(Z[1]+(Math.abs(Z[1]-A[1])<1?0.01:0))+'"><stop offset="0" stop-color="'+c+'"/><stop offset="1" stop-color="'+c2+'"/></linearGradient>';
+      stroke='url(#'+id+')';}
+    const endC=!m.c&&S.ann[l.to]?tc(S.ann[l.to].type):c;
+    s+='<g class="lk" data-goto="'+l.to+'"'+op+'>';
+    s+='<path d="'+d+'" stroke="transparent" stroke-width="6" fill="none"/>';
+    s+='<path d="'+d+'" stroke="'+bg+'" stroke-width="'+(sw+1.6)+'" fill="none" stroke-linecap="round" opacity=".85"/>';
+    s+='<path d="'+d+'" stroke="'+stroke+'" stroke-width="'+sw+'" fill="none" stroke-linecap="round" stroke-linejoin="round"'+(m.dash?' stroke-dasharray="'+m.dash+'"':'')+'/>';
+    if(on)s+='<path class="flow" d="'+d+'" stroke="'+bg+'" stroke-width="'+(sw*0.7)+'" fill="none"/>';
+    if(l.type!=='conflicts')s+='<circle cx="'+A[0]+'" cy="'+A[1]+'" r="'+(on?1.9:1.5)+'" fill="'+bg+'" stroke="'+c+'" stroke-width=".9"/>';
+    s+=head(Z,pts[n-2],endC,l.type==='answers',bg,on?1.15:1);
+    if(l.type==='conflicts')s+=head(A,pts[1],c,false,bg,on?1.15:1);
+    s+='</g>';
+    s+=badge(l,o.kind==='same'?clampBadge(l,mid,o.side,o.p):mid,c,showBadge(l),dk);
+    per[o.p]+=s;
+  }
+  per.forEach((v,p)=>{per[p]=(defs[p]?'<defs>'+defs[p]+'</defs>':'')+leaders[p]+v});
+  // 选中的标注描边
+  F.forEach(id=>{const a=S.ann[id];if(!a||!vis(id))return;const c=tc(a.type);
+    const sg=a.implicit?[S.implRect[id]]:located(id).segs;
+    sg.forEach(s=>{per[s.p]+='<rect x="'+(s.x0-1.5)+'" y="'+(s.top-1.2)+'" width="'+(s.x1-s.x0+3)+'" height="'+(s.bot-s.top+2.4)+'" rx="1.5" fill="none" stroke="'+c+'" stroke-width="1.2"/>'})});
+  S.pages.forEach((pg,p)=>pg.arr.innerHTML=per[p]);
+}
+function badgeText(l,full){
+  const tags=[];if(l.type==='indirect')tags.push('⚠ 缺一步');if(l.overreach)tags.push('说过头');if(l.alternative)tags.push('另解?');if(l.type==='conflicts')tags.push('✕ 打架');
+  if(!tags.length)return '';return full?tags.join(' · '):(l.type==='indirect'?'⚠':tags[0][0]==='✕'?'✕':'!');
+}
+// 徽标不许压进正文：左轨道的徽标右边缘不超过正文左边，右轨道同理
+function clampBadge(l,M,side,p){
+  const t=badgeText(l,true),w=t.length*6+5,rb=railBounds(),W=S.pages[p].w,G=railG(W);
+  let x=M[0];
+  if(side==='L')x=Math.max(-G+w/2+2,Math.min(x,rb.L-4-w/2));else x=Math.min(W+G-w/2-2,Math.max(x,rb.R+4+w/2));
+  return [x,M[1]];
+}
+function badge(l,M,c,full,dk){
+  const t=badgeText(l,full);if(!t)return '';
+  const w=t.length*6+5;
+  return '<g pointer-events="none"><rect x="'+(M[0]-w/2)+'" y="'+(M[1]-5)+'" width="'+w+'" height="9" rx="4.5" fill="'+(dk?'#1d2129':'#fff')+'" stroke="'+c+'" stroke-width=".7"/><text x="'+M[0]+'" y="'+(M[1]+2)+'" font-size="6" text-anchor="middle" fill="'+c+'" font-family="sans-serif">'+esc(t)+'</text></g>';
+}
+
+/* ---------- 重排视图 ---------- */
+function drawReflow(){
+  const list=$('#rfList');let h='',prevE=0;
+  const ord=S.order.filter(id=>S.ann[id].implicit?!!S.implRect[id]:!!located(id));
+  const gapHtml=(a,b)=>{const t=S.raw.slice(a,b).replace(/(\p{Ll})-\n(\p{Ll})/gu,'$1$2').replace(/[ \t]+/g,' ').replace(/\n{2,}/g,'\n').trim();if(t.length<2)return '';
+    return '<div class="gap clip" data-n="'+t.length+'">'+esc(t)+'</div>'};
+  for(const id of ord){
+    const a=S.ann[id];
+    if(!vis(id))continue;
+    if(a.implicit){h+=card(a,a.text,'');continue}
+    const l=located(id);
+    if(l.rawS>prevE)h+=gapHtml(prevE,l.rawS);
+    h+=card(a,dehy(S.raw.slice(l.rawS,l.rawE)),'第 '+l.page+' 页'+(l.approx?' · 近似定位':''));
+    prevE=Math.max(prevE,l.rawE);
+  }
+  if(prevE<S.raw.length)h+=gapHtml(prevE,S.raw.length);
+  const un=Object.values(S.ann).filter(a=>{const l=S.loc[a.id];return (l&&l.fail)||(a.implicit&&!S.implRect[a.id])});
+  if(un.length){h+='<div class="rf-h">没定位上（'+un.length+'）</div>';un.forEach(a=>h+=card(a,a.quote||a.text,'没定位上'))}
+  list.innerHTML=h;
+  list.onclick=e=>{const g=e.target.closest('.gap');if(g){g.classList.toggle('clip');drawReflowArcs();return}const c=e.target.closest('.card');if(c)select(c.dataset.id)};
+  list.onmouseover=e=>{const c=e.target.closest('.card');const id=c&&c.dataset.id;if(id&&id!==S.hover){S.hover=id;drawReflowArcs()}};
+  list.onmouseleave=()=>{S.hover=null;drawReflowArcs()};
+  styleReflowDim();drawReflowArcs();
+}
+function card(a,text,where){
+  const t=TYPES[a.type];
+  return '<div class="card imp'+a.importance+(a.implicit?' implicit':'')+(S.sel===a.id?' on':'')+'" data-id="'+a.id+'" style="--c:'+tc(a.type)+'"><div class="meta">'+(a.implicit?'隐含前提 ':'')+t.zh+' '+t.en+(a.importance===3?' ★ 主线':'')+'<span>'+esc(where)+'</span><span>'+esc(a.id)+'</span></div><div class="q">'+esc(text)+'</div>'+(a.note?'<div class="nt">'+esc(a.note)+'</div>':'')+'</div>';
+}
+function styleReflowDim(){document.querySelectorAll('#rfList .gap').forEach(g=>g.style.opacity=String(Math.max(0.08,1-S.set.dim)))}
+function drawReflowArcs(){
+  if(S.set.view!=='reflow')return;
+  const wrap=$('.rf-wrap'),g=$('#rfG'),gut=parseFloat(getComputedStyle(wrap).paddingLeft)||84;
+  const H=wrap.scrollHeight;g.setAttribute('height',H);g.setAttribute('viewBox','0 0 '+gut+' '+H);g.style.height=H+'px';
+  const pos={};wrap.querySelectorAll('.card').forEach(c=>{pos[c.dataset.id]=c.offsetTop+Math.min(18,c.offsetHeight/2)});
+  const F=focusIds(),bg=getComputedStyle(document.body).backgroundColor;let s='';
+  document.querySelectorAll('#rfList .card').forEach(c=>c.classList.toggle('on',F.has(c.dataset.id)));
+  for(const l of shownLinks()){
+    const y1=pos[l.from],y2=pos[l.to];if(y1==null||y2==null)continue;
+    const c=linkColor(l),m=LINKS[l.type],x=gut-2,d=Math.min(gut-6,8+Math.sqrt(Math.abs(y2-y1))*2.4);
+    const P0=[x,y1],C1=[x-d,y1],C2=[x-d,y2],P3=[x,y2],on=F.has(l.from)||F.has(l.to)||S.focusLink===l;
+    s+='<path d="M'+P0+' C'+C1+' '+C2+' '+P3+'" fill="none" stroke="'+c+'" stroke-width="'+(on?2.2:1.4)+'"'+(m.dash?' stroke-dasharray="'+m.dash.split(' ').map(v=>v*1.8).join(' ')+'"':'')+' opacity="'+(on||!F.size?1:0.35)+'"/>';
+    let dx=P3[0]-C2[0],dy=P3[1]-C2[1];const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;
+    s+='<path d="M'+P3+' L'+(P3[0]-7*dx+3.5*dy)+','+(P3[1]-7*dy-3.5*dx)+' L'+(P3[0]-7*dx-3.5*dy)+','+(P3[1]-7*dy+3.5*dx)+' Z" fill="'+(l.type==='answers'?bg:c)+'" stroke="'+c+'" stroke-width="1.2"/>';
+    if(l.type==='indirect'){const M=bez(P0,C1,C2,P3,0.5);s+='<text x="'+(M[0])+'" y="'+(M[1]+4)+'" font-size="12" text-anchor="middle" fill="'+c+'">⚠</text>'}
+  }
+  g.innerHTML=s;
+}
+
+/* ---------- 选中 / 跳转 ---------- */
+function select(id,link){
+  S.sel=id;S.focusLink=link||null;
+  if(id&&innerWidth<1100)$('#detail').classList.add('open');
+  if(S.set.view==='page')drawArrowsAll();else drawReflowArcs();
+  renderDetail();
+}
+function scrollToAnn(id){
+  const st=$('#stage');
+  if(S.set.view==='reflow'){const c=$('#rfList .card[data-id="'+CSS.escape(id)+'"]');if(c){st.scrollTo({top:c.offsetTop-st.clientHeight*0.35,behavior:'smooth'});c.classList.remove('fl');void c.offsetWidth;c.classList.add('fl')}return}
+  const r=anchorRect(id);if(!r)return;scrollToRegion(r.p,r);
+}
+function scrollToRegion(p,r){
+  const st=$('#stage'),pg=S.pages[p],k=pg.div.clientWidth/pg.w;
+  st.scrollTo({top:pg.div.offsetTop+r.top*k-st.clientHeight*0.35,behavior:'smooth'});
+  const f=document.createElement('div');f.className='flash';
+  Object.assign(f.style,{left:(r.x0*k-3)+'px',top:(r.top*k-3)+'px',width:((r.x1-r.x0)*k+6)+'px',height:((r.bot-r.top)*k+6)+'px'});
+  pg.div.appendChild(f);setTimeout(()=>f.remove(),1700);
+}
+function renderIssues(){
+  const by={};S.issues.forEach(x=>(by[x.r]=by[x.r]||[]).push(x));
+  let h='',tier='';
+  RULES.forEach(R=>{
+    const list=by[R.k]||[];
+    if(R.t==='L'&&!list.length)return;
+    if(R.t!==tier){tier=R.t;h+='<div class="tier">'+TIERS[tier]+'</div>'}
+    const rc=R.t==='A'?'var(--warnA)':R.t==='B'?'var(--warnB)':'var(--warnL)';
+    h+='<details class="rule'+(list.length&&!R.info?' hot':'')+'" style="--rc:'+rc+'"'+(list.length&&!R.info&&R.t!=='L'?' open':'')+(R.k==='unlocated'&&list.length?' open':'')+'><summary><span class="dot"></span>'+R.zh+'<span class="n">'+list.length+'</span></summary><div class="rd">'+R.d+'</div>';
+    if(!list.length)h+='<div class="empty">没有</div>';
+    list.forEach(x=>{const i=S.issues.indexOf(x);
+      const head=x.ids.length?x.ids.map(id=>{const a=S.ann[id];return '<b>'+(annPage(id)?'p'+annPage(id)+' ':'')+TYPES[a.type].zh+'</b> '+esc(cut(a.implicit?a.text:a.quote,R.k==='cycle'?18:46))}).join(x.link?' <span style="color:var(--muted)">→</span> ':' → '):'';
+      h+='<div class="iss" data-i="'+i+'">'+(head||esc(x.w))+(head?'<div class="w">'+esc(x.w)+'</div>':'')+'</div>'});
+    h+='</details>';
+  });
+  $('#issList').innerHTML=h;
+  const tot=S.issues.filter(x=>{const R=RULES.find(r=>r.k===x.r);return !R.info&&R.t!=='L'}).length;
+  $('#tgIssues').textContent='问题清单 '+tot;$('#mIss').textContent='问题 '+tot;
+  $('#issList').onclick=e=>{const d=e.target.closest('.iss');if(!d)return;const x=S.issues[+d.dataset.i];
+    document.querySelectorAll('.iss.on').forEach(n=>n.classList.remove('on'));d.classList.add('on');
+    if(innerWidth<760){$('#issues').classList.remove('open');$('#main').classList.add('noissues')}
+    if(x.r==='idle'){if(S.set.view!=='page'){S.set.view='page';applyView()}select(null);setTimeout(()=>scrollToRegion(x.idle.p,x.idle),30);return}
+    if(!x.ids.length)return;
+    const tgt=x.link?x.link.to:x.ids[0];
+    // 被隐藏的类型 / 主线模式里看不到的，先放出来
+    x.ids.forEach(id=>{const a=S.ann[id];if(S.hidden.has(a.type)){S.hidden.delete(a.type);buildLegend()}if(S.set.main&&a.importance<3){S.set.main=false;syncToolbar()}});
+    refreshAll();
+    select(tgt,x.link||null);
+    if(vis(tgt))setTimeout(()=>scrollToAnn(tgt),30);
+  };
+}
+function renderDetail(){
+  const b=$('#detBody'),id=S.sel;
+  if(!id||!S.ann[id]){b.innerHTML='<div class="hint">点原文上的高亮，看它在论证里的位置：谁撑它，它撑谁。</div>';return}
+  const a=S.ann[id],t=TYPES[a.type],l=S.loc[id];
+  const text=a.implicit?a.text:(located(id)?dehy(S.raw.slice(l.rawS,l.rawE)):a.quote);
+  let h='<div class="dpad" style="--c:'+tc(a.type)+'"><div class="dmeta"><span class="tchip">'+t.zh+' '+t.en+'</span><span>重要度 '+a.importance+(a.importance===3?' · 主线':'')+'</span><span>'+(annPage(id)?'第 '+annPage(id)+' 页':'')+'</span><span>'+esc(id)+'</span></div>';
+  h+='<div class="dq">'+(a.implicit?'<b>隐含前提：</b>':'')+esc(text)+'</div>';
+  if(l&&l.fail)h+='<div class="ex warn">没定位上：'+esc(l.fail)+'</div>';
+  if(a.note)h+='<div>'+esc(a.note)+'</div>';
+  if(a.external)h+='<div class="dsec">外部支撑</div><div>'+esc(a.external)+'</div>';
+  const inc=S.links.filter(x=>x.to===id),out=S.links.filter(x=>x.from===id);
+  const lk=(x,other)=>{const o=S.ann[other],ex=[];
+    if(x.missing_step)ex.push('<div class="ex warn">缺一步：'+esc(x.missing_step)+'</div>');
+    if(x.overreach)ex.push('<div class="ex warn">说过头：'+esc(x.overreach)+'</div>');
+    if(x.alternative)ex.push('<div class="ex warn">替代解释：'+esc(x.alternative)+'</div>');
+    if(x.note)ex.push('<div class="ex">'+esc(x.note)+'</div>');
+    return '<div class="lk" data-go="'+other+'" style="--c:'+tc(o.type)+'"><div class="lt">'+LINKS[x.type].zh+' · <span style="color:'+tc(o.type)+'">'+TYPES[o.type].zh+'</span>'+(annPage(other)?' · p'+annPage(other):'')+'</div>'+esc(cut(o.implicit?o.text:o.quote,110))+ex.join('')+'</div>'};
+  h+='<div class="dsec">谁撑它（'+inc.length+'）</div>'+(inc.length?inc.map(x=>lk(x,x.from)).join(''):'<div class="hint" style="padding:0">没有</div>');
+  h+='<div class="dsec">它撑谁（'+out.length+'）</div>'+(out.length?out.map(x=>lk(x,x.to)).join(''):'<div class="hint" style="padding:0">没有</div>');
+  const iss=S.issues.filter(x=>x.ids.includes(id));
+  if(iss.length){h+='<div class="dsec">相关问题</div>'+iss.map(x=>'<div class="ex warn" style="margin:3px 0">'+RULES.find(r=>r.k===x.r).zh+'：'+esc(x.w)+'</div>').join('')}
+  h+='</div>';b.innerHTML=h;
+  b.onclick=e=>{const g=e.target.closest('[data-go]');if(g){const id2=g.dataset.go;select(id2);if(!vis(id2)){const a2=S.ann[id2];S.hidden.delete(a2.type);if(a2.importance<3)S.set.main=false;buildLegend();syncToolbar();refreshAll()}scrollToAnn(id2)}};
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+</script>
+<script type="application/json" id="logic-data">__LOGIC_DATA__</script>
+<script type="text/plain" id="pdf-data">__PDF_DATA__</script>
+</body>
+</html>
